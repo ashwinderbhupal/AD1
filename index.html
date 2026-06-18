@@ -208,12 +208,15 @@
 
     .list{max-height:none}
 
-    /* overlays repositioned so they don't collide with the sheet */
-    .overlay-top{top:max(12px,env(safe-area-inset-top)); right:12px; left:12px;
-      justify-content:flex-end; flex-wrap:wrap}
-    .legend{bottom:auto; top:max(54px,calc(env(safe-area-inset-top) + 42px)); left:12px;
-      padding:10px 12px; transform:scale(.92); transform-origin:top left}
-    .leaflet-control-zoom{margin-bottom:0!important}
+    /* top: only the count pill, pinned right away from the zoom control */
+    .overlay-top{top:max(12px,env(safe-area-inset-top)); right:12px; left:auto;
+      justify-content:flex-end}
+    .overlay-top .pill{font-size:11px; padding:6px 11px}
+
+    /* the floating map legend is replaced by an in-sheet legend on mobile */
+    .legend{display:none}
+
+    .leaflet-control-zoom{margin-top:max(8px,env(safe-area-inset-top))!important; margin-left:8px!important}
     .leaflet-bottom{bottom:env(safe-area-inset-bottom)}
   }
 
@@ -283,7 +286,9 @@ const HUB={lat:38.861362,lng:-77.054594,label:"Amazon HQ2 · Arlington, VA"};
 let active=new Set(DATA.cats);   // all on
 let showArcs=true, showPulse=true;
 
-const map=L.map("map",{zoomControl:true,attributionControl:false,worldCopyJump:true}).setView([39,-95],4);
+const _isMobile=window.matchMedia("(max-width:780px)").matches;
+const map=L.map("map",{zoomControl:true,attributionControl:false,worldCopyJump:true})
+  .setView(_isMobile?[42,-96]:[39,-95], _isMobile?3:4);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd"}).addTo(map);
 
 const arcLayer=L.layerGroup().addTo(map);
@@ -385,7 +390,8 @@ function render(){
         dashArray:"1 6",lineCap:"round"}).addTo(arcLayer);
     }
 
-    const size=20+Math.min(fp.length,7)*5;
+    const isM=window.matchMedia("(max-width:780px)").matches;
+    const size=(isM?14:20)+Math.min(fp.length,7)*(isM?3.5:5);
     const col=CATCOLOR[domCat(fp)];
     const multi=fp.length>1;
     const pulseHtml=(showPulse&&fp.length>=3)?
@@ -518,7 +524,14 @@ render();
 renderList();
 
 // intro flythrough
-setTimeout(()=>map.flyTo([39,-95],4.3,{duration:1.6}),300);
+// intro: frame the continental US in the visible map area (above the sheet on mobile)
+setTimeout(()=>{
+  if(_isMobile){
+    map.fitBounds([[24.5,-125],[49.5,-66.5]],{paddingTopLeft:[14,20],paddingBottomRight:[14,200],animate:true,duration:1.4});
+  }else{
+    map.flyTo([39,-95],4.3,{duration:1.6});
+  }
+},300);
 
 /* ---------- Mobile bottom-sheet drag ---------- */
 (function(){
