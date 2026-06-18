@@ -155,6 +155,13 @@
     transition:color .12s}
   .pop-person .pe::before{content:"✉"; font-size:11px; opacity:.8}
   .pop-person .pe:hover{color:var(--amber-glow); text-decoration:underline}
+  .pop-person .pacts{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px}
+  .pop-person .pacts .pe{margin-top:0}
+  .pop-person .slk{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700;
+    color:var(--paper); text-decoration:none; background:#4A154B; border:1px solid #611f69;
+    border-radius:6px; padding:3px 9px; line-height:1.4; cursor:pointer; transition:filter .12s}
+  .pop-person .slk::before{content:"#"; font-size:12px; font-weight:800; color:#36C5F0}
+  .pop-person .slk:hover{filter:brightness(1.15)}
 
   /* ---------- Mobile: full-screen map + draggable bottom sheet ---------- */
   .sheet-handle{display:none}
@@ -434,10 +441,15 @@ map.on("zoomstart",()=>{ if(spiderActive){ spiderLayer.clearLayers(); spiderActi
 
 function personRow(p){
   const email=p.alias+'@amazon.com';
+  const slackUrl='https://slack.com/app_redirect?'+'channel='+encodeURIComponent(p.alias);
+  const slackSearch='slack://search?query='+encodeURIComponent(p.alias);
   return '<div class="pop-person"><div class="pn"><span class="tag" style="background:'+CATCOLOR[p.cat]+'"></span>'+p.name+'</div>'+
     '<div class="pr">'+p.role+'</div>'+
     (p.dept?'<div class="pd">'+p.dept+'</div>':'')+
-    '<a class="pe" href="mailto:'+email+'">'+email+'</a></div>';
+    '<div class="pacts">'+
+      '<a class="pe" href="mailto:'+email+'">'+email+'</a>'+
+      '<a class="slk" href="'+slackSearch+'" data-fallback="'+slackUrl+'" data-alias="'+p.alias+'">Slack</a>'+
+    '</div></div>';
 }
 function popup(g,fp){
   let h='<div class="pop-loc">'+g.location+'</div>';
@@ -517,6 +529,22 @@ function renderList(filter=""){
 }
 
 document.getElementById("q").addEventListener("input",e=>renderList(e.target.value));
+
+// Slack button: try the desktop app, fall back to Slack search in the browser
+document.addEventListener("click",function(e){
+  const a=e.target.closest(".slk");
+  if(!a) return;
+  e.preventDefault();
+  const alias=a.getAttribute("data-alias");
+  const webUrl="https://app.slack.com/client?query="+encodeURIComponent(alias);
+  // attempt the native app deep link
+  const t=Date.now();
+  window.location.href="slack://search?query="+encodeURIComponent(alias);
+  // if the app didn't take over within ~600ms, open Slack in the browser to search
+  setTimeout(()=>{
+    if(Date.now()-t<1500){ window.open(webUrl,"_blank","noopener"); }
+  },600);
+});
 
 // initial stats baseline then render
 document.getElementById("s-people").textContent=0;
